@@ -2,24 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Private Room Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Private Group Chat</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>🔐 Private Room Chat</h1>
-    
-    <div class="room-select">
-      <input type="text" id="roomInput" placeholder="Enter room ID..." />
-      <button onclick="joinRoom()">Join Room</button>
-    </div>
+    <h2>🔐 Private Group Chat</h2>
 
-    <div id="chatArea" class="chat-box" style="display: none;">
-      <div id="messages"></div>
+    <input id="usernameInput" type="text" placeholder="Enter your name" />
+    <input id="roomInput" type="text" placeholder="Enter room name" />
+    <button onclick="joinRoom()">Join Room</button>
 
-      <input type="text" id="messageInput" placeholder="Type a message..." />
-      <div class="btn-group">
+    <div id="chatArea" style="display:none;">
+      <div id="messages" class="chat-box"></div>
+      <input id="messageInput" type="text" placeholder="Type a message" />
+      <div class="btns">
         <button onclick="sendMessage()">Send</button>
         <button onclick="clearMessages()">Clear</button>
         <button onclick="leaveRoom()">Leave</button>
@@ -27,7 +25,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

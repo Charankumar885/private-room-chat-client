@@ -1,110 +1,71 @@
-* {
-  box-sizing: border-box;
-}
-
 body {
-  margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #f0f4f8, #c2e9fb);
-  padding: 20px;
+  background: linear-gradient(to right, #1f4037, #99f2c8);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 .container {
-  max-width: 600px;
-  margin: auto;
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-}
-
-h1 {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 450px;
   text-align: center;
-  color: #333;
 }
 
-.room-select {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+h2 {
+  margin-bottom: 1rem;
+  color: #1f4037;
 }
 
-.room-select input {
-  flex: 1;
+input {
+  width: 90%;
   padding: 10px;
-  font-size: 16px;
+  margin: 10px 0;
+  border: 2px solid #1f4037;
+  border-radius: 8px;
+  font-size: 1rem;
 }
 
-.room-select button {
-  padding: 10px 20px;
-  background: #28a745;
+button {
+  background-color: #1f4037;
   color: white;
-  font-weight: bold;
+  padding: 8px 15px;
+  margin: 5px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+button:hover {
+  background-color: #135a4c;
 }
 
 .chat-box {
-  display: flex;
-  flex-direction: column;
-}
-
-#messages {
-  height: 300px;
-  border: 1px solid #ccc;
-  padding: 10px;
+  background: #f0f0f0;
+  height: 250px;
   overflow-y: auto;
-  background: #fafafa;
-  margin-bottom: 10px;
-  font-size: 14px;
-}
-
-#messages p {
-  margin: 6px 0;
-}
-
-#messageInput {
+  border-radius: 8px;
   padding: 10px;
-  font-size: 16px;
+  text-align: left;
   margin-bottom: 10px;
-  width: 100%;
+  border: 1px solid #ccc;
 }
 
-.btn-group {
+.chat-box p {
+  margin: 5px 0;
+}
+
+.btns {
   display: flex;
+  justify-content: center;
   gap: 10px;
-}
-
-.btn-group button {
-  flex: 1;
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.btn-group button:nth-child(2) {
-  background-color: #ffc107;
-}
-
-.btn-group button:nth-child(3) {
-  background-color: #dc3545;
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding: 15px;
-  }
-
-  .room-select, .btn-group {
-    flex-direction: column;
-  }
-
-  .room-select input, .btn-group button {
-    width: 100%;
-  }
 }
