@@ -2,10 +2,9 @@ const socket = io("https://private-room-chat-server.onrender.com");
 
 let room = "";
 let username = "";
-const SECRET_KEY = "myTestingKey123";
+let SECRET_KEY = ""; // ✅ Now it's let so we can update it
 
-console.log("Using secret key:", SECRET_KEY);
-// 🔐 XOR-based encryption with URI encoding
+// XOR-based encryption with URI encoding
 function encrypt(message, key) {
   const xorResult = message
     .split("")
@@ -16,7 +15,7 @@ function encrypt(message, key) {
   return btoa(encodeURIComponent(xorResult));
 }
 
-// 🔓 XOR-based decryption with URI decoding
+// XOR-based decryption with URI decoding
 function decrypt(encrypted, key) {
   try {
     const decoded = decodeURIComponent(atob(encrypted));
@@ -32,11 +31,12 @@ function decrypt(encrypted, key) {
   }
 }
 
-// 👥 Join room
 function joinRoom() {
   room = document.getElementById("roomInput").value.trim();
   username = document.getElementById("usernameInput").value.trim();
   SECRET_KEY = document.getElementById("secretKeyInput").value.trim();
+
+  console.log("🔑 Using secret key:", SECRET_KEY); // debug
 
   if (room && username && SECRET_KEY) {
     socket.emit("join_room", room);
@@ -47,7 +47,6 @@ function joinRoom() {
   }
 }
 
-// 📨 Send message
 function sendMessage() {
   const msg = document.getElementById("messageInput").value.trim();
   if (msg && room && username && SECRET_KEY) {
@@ -63,19 +62,16 @@ function sendMessage() {
   }
 }
 
-// ❌ Leave room
+function clearMessages() {
+  document.getElementById("messages").innerHTML = "";
+}
+
 function leaveRoom() {
   socket.emit("leave_room", room);
   document.getElementById("chatArea").style.display = "none";
   appendMessage("🚪 You left the room.");
 }
 
-// 🧹 Clear chat
-function clearMessages() {
-  document.getElementById("messages").innerHTML = "";
-}
-
-// 📩 Receive message
 socket.on("receive_message", (payload) => {
   if (!payload || !payload.encryptedMessage || !payload.sender) {
     appendMessage("⚠️ Received a malformed message.");
@@ -91,7 +87,6 @@ socket.on("receive_message", (payload) => {
   }
 });
 
-// 💬 Append to chat box
 function appendMessage(msg) {
   const messagesDiv = document.getElementById("messages");
   const p = document.createElement("p");
