@@ -2,9 +2,9 @@ const socket = io("https://private-room-chat-server.onrender.com");
 
 let room = "";
 let username = "";
-const SECRET_KEY = "mySuperSecretKey123";
+const SECRET_KEY = "mySuperSecretKey123"; // Must match for all users
 
-// XOR-based encryption
+// XOR encryption
 function encrypt(message, key) {
   return btoa(message.split('').map((char, i) =>
     String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
@@ -34,7 +34,11 @@ function sendMessage() {
   const msg = document.getElementById("messageInput").value.trim();
   if (msg && room && username) {
     const encrypted = encrypt(msg, SECRET_KEY);
-    socket.emit("send_message", { room, encryptedMessage: encrypted, sender: username });
+    socket.emit("send_message", {
+      room,
+      encryptedMessage: encrypted,
+      sender: username
+    });
 
     appendMessage(`🧑 ${username}: ${msg}`);
     document.getElementById("messageInput").value = "";
@@ -51,9 +55,8 @@ function leaveRoom() {
   appendMessage("🚪 You left the room.");
 }
 
-// Receiving messages
 socket.on("receive_message", (payload) => {
-  console.log("📦 Received payload:", payload);
+  console.log("📦 Received message:", payload);
 
   if (!payload || !payload.encryptedMessage || !payload.sender) {
     appendMessage("⚠️ Received a malformed message.");
@@ -64,7 +67,7 @@ socket.on("receive_message", (payload) => {
     const decrypted = decrypt(payload.encryptedMessage, SECRET_KEY);
     appendMessage(`🧑 ${payload.sender}: ${decrypted}`);
   } catch (err) {
-    console.error("❌ Decryption error:", err);
+    console.error("❌ Decryption failed:", err);
     appendMessage(`⚠️ Could not decrypt message from ${payload.sender || "unknown"}`);
   }
 });
