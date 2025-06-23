@@ -2,8 +2,9 @@ const socket = io("https://private-room-chat-server.onrender.com");
 
 let room = "";
 let username = "";
-let SECRET_KEY = "";
+const SECRET_KEY = "myTestingKey123";
 
+console.log("Using secret key:", SECRET_KEY);
 // 🔐 XOR-based encryption with URI encoding
 function encrypt(message, key) {
   const xorResult = message
