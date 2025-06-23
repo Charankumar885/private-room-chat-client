@@ -2,21 +2,17 @@ const socket = io("https://private-room-chat-server.onrender.com");
 
 let room = "";
 let username = "";
-const SECRET_KEY = "mySuperSecretKey123"; // Must match on both ends
+const SECRET_KEY = "mySuperSecretKey123";
 
-// Secure XOR + Base64 encode
+// XOR-based encryption
 function encrypt(message, key) {
-  const xor = [...message].map((char, i) =>
+  return btoa(message.split('').map((char, i) =>
     String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-  ).join('');
-
-  return btoa(unescape(encodeURIComponent(xor))); // UTF-8 safe
+  ).join(''));
 }
 
-// Secure Base64 decode + XOR
 function decrypt(encrypted, key) {
-  const decoded = decodeURIComponent(escape(atob(encrypted))); // UTF-8 safe
-  return [...decoded].map((char, i) =>
+  return atob(encrypted).split('').map((char, i) =>
     String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
   ).join('');
 }
@@ -29,14 +25,17 @@ function joinRoom() {
     socket.emit("join_room", room);
     document.getElementById("chatArea").style.display = "block";
     appendMessage(`✅ You (${username}) joined room: ${room}`);
+  } else {
+    alert("Please enter both username and room name.");
   }
 }
 
 function sendMessage() {
   const msg = document.getElementById("messageInput").value.trim();
-  if (msg !== "") {
+  if (msg && room && username) {
     const encrypted = encrypt(msg, SECRET_KEY);
     socket.emit("send_message", { room, encryptedMessage: encrypted, sender: username });
+
     appendMessage(`🧑 ${username}: ${msg}`);
     document.getElementById("messageInput").value = "";
   }
@@ -52,13 +51,19 @@ function leaveRoom() {
   appendMessage("🚪 You left the room.");
 }
 
-socket.on("receive_message", ({ encryptedMessage, sender }) => {
+// Receiving messages
+socket.on("receive_message", (payload) => {
+  if (!payload || !payload.encryptedMessage || !payload.sender) {
+    appendMessage("⚠️ Received a malformed message.");
+    return;
+  }
+
   try {
-    const decrypted = decrypt(encryptedMessage, SECRET_KEY);
-    appendMessage(`🧑 ${sender}: ${decrypted}`);
+    const decrypted = decrypt(payload.encryptedMessage, SECRET_KEY);
+    appendMessage(`🧑 ${payload.sender}: ${decrypted}`);
   } catch (err) {
-    console.error("Decryption error:", err);
-    appendMessage(`⚠️ Could not decrypt message from ${sender}`);
+    console.error("❌ Decryption error:", err);
+    appendMessage(`⚠️ Could not decrypt message from ${payload.sender || "unknown"}`);
   }
 });
 
