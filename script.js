@@ -1,4 +1,4 @@
-const socket = io("http://localhost:3000");
+const socket = io("https://private-room-chat-server.onrender.com");
 let room = "";
 const SECRET_KEY = "mySuperSecretKey123"; // Keep this consistent between sender & receiver
 
