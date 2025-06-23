@@ -4,26 +4,18 @@ let room = "";
 let username = "";
 let SECRET_KEY = "";
 
-// XOR encryption
 function encrypt(message, key) {
-  return btoa(
-    message
-      .split("")
-      .map((char, i) =>
-        String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-      )
-      .join("")
-  );
+  const xor = message.split("").map((char, i) =>
+    String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+  ).join("");
+  return btoa(unescape(encodeURIComponent(xor))); // Ensure proper base64
 }
 
-// XOR decryption
 function decrypt(encrypted, key) {
-  return atob(encrypted)
-    .split("")
-    .map((char, i) =>
-      String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-    )
-    .join("");
+  const decoded = decodeURIComponent(escape(atob(encrypted))); // Decode safely
+  return decoded.split("").map((char, i) =>
+    String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+  ).join("");
 }
 
 function joinRoom() {
@@ -36,23 +28,22 @@ function joinRoom() {
     document.getElementById("chatArea").style.display = "block";
     appendMessage(`✅ You (${username}) joined room: ${room}`);
   } else {
-    alert("Please enter your name, room, and secret key.");
+    alert("Please enter all fields (username, room, secret key)");
   }
 }
 
 function sendMessage() {
   const msg = document.getElementById("messageInput").value.trim();
   if (msg && room && username && SECRET_KEY) {
-    const encrypted = encrypt(msg, SECRET_KEY);
-    socket.emit("send_message", {
-      room,
-      encryptedMessage: encrypted,
-      sender: username,
-    });
-    console.log("🔐 Sent Encrypted:", encrypted);
-
-    appendMessage(`🧑 ${username}: ${msg}`);
-    document.getElementById("messageInput").value = "";
+    try {
+      const encrypted = encrypt(msg, SECRET_KEY);
+      socket.emit("send_message", { room, encryptedMessage: encrypted, sender: username });
+      appendMessage(`🧑 ${username}: ${msg}`);
+      document.getElementById("messageInput").value = "";
+    } catch (err) {
+      appendMessage("❌ Failed to encrypt message.");
+      console.error(err);
+    }
   }
 }
 
@@ -66,7 +57,6 @@ function leaveRoom() {
   appendMessage("🚪 You left the room.");
 }
 
-// Receive message
 socket.on("receive_message", (payload) => {
   if (!payload || !payload.encryptedMessage || !payload.sender) {
     appendMessage("⚠️ Received a malformed message.");
@@ -75,12 +65,10 @@ socket.on("receive_message", (payload) => {
 
   try {
     const decrypted = decrypt(payload.encryptedMessage, SECRET_KEY);
-    console.log("📩 Encrypted:", payload.encryptedMessage);
-    console.log("🔓 Decrypted:", decrypted);
     appendMessage(`🧑 ${payload.sender}: ${decrypted}`);
-  } catch (error) {
-    console.error("❌ Decryption failed:", error);
+  } catch (err) {
     appendMessage(`⚠️ Could not decrypt message from ${payload.sender}`);
+    console.error("Decryption error:", err);
   }
 });
 
