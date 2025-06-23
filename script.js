@@ -4,20 +4,34 @@ let room = "";
 let username = "";
 let SECRET_KEY = "";
 
+// 🔐 XOR-based encryption with URI encoding
 function encrypt(message, key) {
-  const xor = message.split("").map((char, i) =>
-    String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-  ).join("");
-  return btoa(unescape(encodeURIComponent(xor))); // Ensure proper base64
+  const xorResult = message
+    .split("")
+    .map((char, i) =>
+      String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+    )
+    .join("");
+  return btoa(encodeURIComponent(xorResult));
 }
 
+// 🔓 XOR-based decryption with URI decoding
 function decrypt(encrypted, key) {
-  const decoded = decodeURIComponent(escape(atob(encrypted))); // Decode safely
-  return decoded.split("").map((char, i) =>
-    String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-  ).join("");
+  try {
+    const decoded = decodeURIComponent(atob(encrypted));
+    return decoded
+      .split("")
+      .map((char, i) =>
+        String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
+      )
+      .join("");
+  } catch (err) {
+    console.error("❌ Decryption failed:", err);
+    return null;
+  }
 }
 
+// 👥 Join room
 function joinRoom() {
   room = document.getElementById("roomInput").value.trim();
   username = document.getElementById("usernameInput").value.trim();
@@ -28,50 +42,55 @@ function joinRoom() {
     document.getElementById("chatArea").style.display = "block";
     appendMessage(`✅ You (${username}) joined room: ${room}`);
   } else {
-    alert("Please enter all fields (username, room, secret key)");
+    alert("Please enter your name, room, and secret key.");
   }
 }
 
+// 📨 Send message
 function sendMessage() {
   const msg = document.getElementById("messageInput").value.trim();
   if (msg && room && username && SECRET_KEY) {
-    try {
-      const encrypted = encrypt(msg, SECRET_KEY);
-      socket.emit("send_message", { room, encryptedMessage: encrypted, sender: username });
-      appendMessage(`🧑 ${username}: ${msg}`);
-      document.getElementById("messageInput").value = "";
-    } catch (err) {
-      appendMessage("❌ Failed to encrypt message.");
-      console.error(err);
-    }
+    const encrypted = encrypt(msg, SECRET_KEY);
+    socket.emit("send_message", {
+      room,
+      encryptedMessage: encrypted,
+      sender: username,
+    });
+
+    appendMessage(`🧑 ${username}: ${msg}`);
+    document.getElementById("messageInput").value = "";
   }
 }
 
-function clearMessages() {
-  document.getElementById("messages").innerHTML = "";
-}
-
+// ❌ Leave room
 function leaveRoom() {
   socket.emit("leave_room", room);
   document.getElementById("chatArea").style.display = "none";
   appendMessage("🚪 You left the room.");
 }
 
+// 🧹 Clear chat
+function clearMessages() {
+  document.getElementById("messages").innerHTML = "";
+}
+
+// 📩 Receive message
 socket.on("receive_message", (payload) => {
   if (!payload || !payload.encryptedMessage || !payload.sender) {
     appendMessage("⚠️ Received a malformed message.");
     return;
   }
 
-  try {
-    const decrypted = decrypt(payload.encryptedMessage, SECRET_KEY);
-    appendMessage(`🧑 ${payload.sender}: ${decrypted}`);
-  } catch (err) {
+  const decrypted = decrypt(payload.encryptedMessage, SECRET_KEY);
+
+  if (decrypted === null) {
     appendMessage(`⚠️ Could not decrypt message from ${payload.sender}`);
-    console.error("Decryption error:", err);
+  } else {
+    appendMessage(`🧑 ${payload.sender}: ${decrypted}`);
   }
 });
 
+// 💬 Append to chat box
 function appendMessage(msg) {
   const messagesDiv = document.getElementById("messages");
   const p = document.createElement("p");
