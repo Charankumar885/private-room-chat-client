@@ -54,6 +54,7 @@ socket.on("receive_message", ({ encryptedMessage, sender }) => {
   appendMessage(`🧑 ${sender}: ${decrypted}`);
 });
 
+
 function appendMessage(msg) {
   const messagesDiv = document.getElementById("messages");
   const p = document.createElement("p");
