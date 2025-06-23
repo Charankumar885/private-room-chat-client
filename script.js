@@ -53,6 +53,8 @@ function leaveRoom() {
 
 // Receiving messages
 socket.on("receive_message", (payload) => {
+  console.log("📦 Received payload:", payload);
+
   if (!payload || !payload.encryptedMessage || !payload.sender) {
     appendMessage("⚠️ Received a malformed message.");
     return;
