@@ -12,14 +12,16 @@
     
     <div id="connectionStatus">🔴 Disconnected</div>
     
+    <!-- Login Section (initially visible) -->
     <div id="loginArea">
-      <input id="usernameInput" type="text" placeholder="Enter your name">
-      <input id="roomInput" type="text" placeholder="Enter room name">
-      <input id="secretKeyInput" type="password" placeholder="Enter secret key">
-      <button onclick="joinRoom()">Join Room</button>
+      <input id="usernameInput" type="text" placeholder="Enter your name" required>
+      <input id="roomInput" type="text" placeholder="Enter room name" required>
+      <input id="secretKeyInput" type="password" placeholder="Enter secret key" required>
+      <button id="joinButton" onclick="joinRoom()">Join Room</button>
     </div>
     
-    <div id="chatArea" style="display:none;">
+    <!-- Chat Section (initially hidden) -->
+    <div id="chatArea">
       <div id="roomInfo">
         <h3>Room: <span id="currentRoomDisplay"></span></h3>
         <div id="roomUsers"></div>
