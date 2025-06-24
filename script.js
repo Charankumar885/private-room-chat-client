@@ -37,11 +37,11 @@ function joinRoom() {
   const secretKey = document.getElementById("secretKeyInput").value.trim();
 
   if (!room || !username || !secretKey) {
-    appendMessage("Please fill in all fields", "error");
+    appendMessage("❗ Please fill in all fields", "error");
     return;
   }
 
-  const joinBtn = document.querySelector('#joinForm button[type="submit"]');
+  const joinBtn = document.getElementById("joinBtn");
   joinBtn.disabled = true;
   joinBtn.textContent = "Connecting...";
 
@@ -49,20 +49,20 @@ function joinRoom() {
   currentUsername = username;
   currentSecretKey = secretKey;
 
-  socket.emit("join_room", {
-    room,
-    username,
-    secretKey
-  }, (response) => {
+  console.log("📨 Sending join_room event", { room, username });
+
+  socket.emit("join_room", { room, username, secretKey }, (response) => {
+    console.log("✅ Received join response:", response);
+
     joinBtn.disabled = false;
     joinBtn.textContent = "Join Room";
 
     if (response?.success) {
       document.getElementById("chatArea").style.display = "block";
-      document.getElementById("loginArea").style.display = "none";
+      document.getElementById("joinForm").style.display = "none";
       roomDisplayEl.textContent = room;
-      appendMessage(`✅ You joined room: ${room}`, "system");
-      appendMessage(`🔑 Using secret key: ${'•'.repeat(secretKey.length)}`, "system");
+      appendMessage(`✅ Joined room: ${room}`, "system");
+      appendMessage(`🔑 Using secret key: ${"•".repeat(secretKey.length)}`, "system");
       updateConnectionStatus(true);
     } else {
       appendMessage(`❌ ${response?.error || "Failed to join room"}`, "error");
@@ -73,7 +73,7 @@ function joinRoom() {
 
 function sendMessage() {
   if (!isConnected) {
-    appendMessage("Not connected to room", "error");
+    appendMessage("⚠️ Not connected to a room", "error");
     return;
   }
 
@@ -82,7 +82,7 @@ function sendMessage() {
 
   const encrypted = encrypt(message, currentSecretKey);
   if (!encrypted) {
-    appendMessage("Failed to encrypt message", "error");
+    appendMessage("Encryption failed", "error");
     return;
   }
 
@@ -129,7 +129,7 @@ function leaveRoom() {
   if (currentRoom) {
     socket.emit("leave_room", currentRoom);
     document.getElementById("chatArea").style.display = "none";
-    document.getElementById("loginArea").style.display = "block";
+    document.getElementById("joinForm").style.display = "block";
     appendMessage(`🚪 You left room: ${currentRoom}`, "system");
     currentRoom = "";
     updateConnectionStatus(false);
@@ -184,19 +184,20 @@ socket.on("user_left", (username) => {
 socket.on("room_users", (users) => {
   const usersList = document.getElementById("roomUsers");
   if (usersList) {
-    usersList.innerHTML = "<h4>Users in room:</h4>" + 
+    usersList.innerHTML = "<h4>Users in room:</h4>" +
       users.map(user => `<li>${user}${user === currentUsername ? ' (You)' : ''}</li>`).join('');
   }
 });
 
-// ✅ Prevent form reload on submit
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("🟢 DOM fully loaded");
+
   const joinForm = document.getElementById("joinForm");
   joinForm.addEventListener("submit", (event) => {
     event.preventDefault();
+    console.log("📥 Join button clicked");
     joinRoom();
   });
 
-  document.getElementById("loginArea").style.display = "block";
   document.getElementById("chatArea").style.display = "none";
 });
