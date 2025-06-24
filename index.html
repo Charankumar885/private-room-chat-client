@@ -1,38 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Private Group Chat</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <h2>🔐 Private Group Chat</h2>
     <div id="connectionStatus">🔴 Disconnected</div>
 
-    <!-- Login Screen -->
-    <div id="loginArea">
-      <input id="usernameInput" type="text" placeholder="Enter your name">
-      <input id="roomInput" type="text" placeholder="Enter room name">
-      <input id="secretKeyInput" type="password" placeholder="Enter secret key">
-      <button id="joinButton" onclick="joinRoom()">Join Room</button>
-    </div>
+    <!-- Join Form -->
+    <form id="loginForm" onsubmit="event.preventDefault(); joinRoom();">
+      <input id="usernameInput" type="text" placeholder="Enter your name" required />
+      <input id="roomInput" type="text" placeholder="Enter room name" required />
+      <input id="secretKeyInput" type="password" placeholder="Enter secret key" required />
+      <button type="submit" id="joinButton">Join Room</button>
+    </form>
 
-    <!-- Chat Screen -->
-    <div id="chatArea" style="display:none">
-      <div id="roomInfo">
-        <h3>Room: <span id="currentRoomDisplay"></span></h3>
-        <div id="roomUsers"></div>
-      </div>
+    <!-- Chat Area -->
+    <div id="chatArea" style="display: none;">
+      <h3>Room: <span id="currentRoomDisplay"></span></h3>
+      <div id="roomUsers"></div>
       <div id="messages" class="chat-box"></div>
-      <div class="message-controls">
-        <input id="messageInput" type="text" placeholder="Type a message">
-        <div class="btns">
-          <button onclick="sendMessage()">Send</button>
-          <button onclick="clearMessages()">Clear</button>
-          <button onclick="leaveRoom()">Leave</button>
-        </div>
+
+      <input id="messageInput" type="text" placeholder="Type a message" />
+      <div class="btns">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="clearMessages()">Clear</button>
+        <button onclick="leaveRoom()">Leave</button>
       </div>
     </div>
   </div>
