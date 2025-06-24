@@ -1,131 +1,202 @@
 const socket = io("https://private-room-chat-server.onrender.com", {
   reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  timeout: 20000,
   transports: ["websocket"]
 });
 
-let currentRoom = "", currentUsername = "", currentSecretKey = "";
+let currentRoom = "";
+let currentUsername = "";
+let currentSecretKey = "";
 let isConnected = false;
 
-// DOM Refs
-const statusEl = document.getElementById("connectionStatus");
-const loginArea = document.getElementById("loginArea");
-const chatArea = document.getElementById("chatArea");
+const connectionStatusEl = document.getElementById("connectionStatus");
 const roomDisplayEl = document.getElementById("currentRoomDisplay");
 
-// Append message utility
-function appendMessage(text, type="system") {
-  const msgDiv = document.createElement("div");
-  msgDiv.textContent = text;
-  msgDiv.className = `message ${type}-message`;
-  document.getElementById("messages").appendChild(msgDiv);
-  document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+function appendMessage(message, type = "system") {
+  const messagesDiv = document.getElementById("messages");
+  if (!messagesDiv) return;
+
+  const messageEl = document.createElement("div");
+  messageEl.textContent = message;
+  messageEl.className = `message ${type}-message`;
+  messagesDiv.appendChild(messageEl);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Update status light
-function updateConnection(connected) {
+function updateConnectionStatus(connected) {
   isConnected = connected;
-  statusEl.textContent = connected ? "🟢 Connected" : "🔴 Disconnected";
-  statusEl.style.color = connected ? "green" : "red";
+  connectionStatusEl.textContent = connected ? "🟢 Connected" : "🔴 Disconnected";
+  connectionStatusEl.style.color = connected ? "green" : "red";
 }
 
 function joinRoom() {
   const room = document.getElementById("roomInput").value.trim();
-  const user = document.getElementById("usernameInput").value.trim();
-  const secret = document.getElementById("secretKeyInput").value.trim();
-  if (!room || !user || !secret) {
-    appendMessage("❌ All fields are required", "error");
+  const username = document.getElementById("usernameInput").value.trim();
+  const secretKey = document.getElementById("secretKeyInput").value.trim();
+
+  if (!room || !username || !secretKey) {
+    appendMessage("Please fill in all fields", "error");
     return;
   }
 
-  document.getElementById("joinButton").disabled = true;
-  document.getElementById("joinButton").textContent = "Joining...";
+  const joinBtn = document.querySelector('#joinForm button[type="submit"]');
+  joinBtn.disabled = true;
+  joinBtn.textContent = "Connecting...";
 
   currentRoom = room;
-  currentUsername = user;
-  currentSecretKey = secret;
+  currentUsername = username;
+  currentSecretKey = secretKey;
 
-  socket.emit("join_room", {room, username: user, secretKey: secret}, (res) => {
-    document.getElementById("joinButton").disabled = false;
-    document.getElementById("joinButton").textContent = "Join Room";
-    if (res.success) {
-      loginArea.style.display = "none";
-      chatArea.style.display = "block";
+  socket.emit("join_room", {
+    room,
+    username,
+    secretKey
+  }, (response) => {
+    joinBtn.disabled = false;
+    joinBtn.textContent = "Join Room";
+
+    if (response?.success) {
+      document.getElementById("chatArea").style.display = "block";
+      document.getElementById("loginArea").style.display = "none";
       roomDisplayEl.textContent = room;
-      appendMessage(`✅ Joined room "${room}"`, "system");
-      appendMessage(`🔑 Secret key is set`, "system");
-      updateConnection(true);
-
-      // Show list of users on join
-      if (res.users) socket.emit("room_users", currentRoom);
+      appendMessage(`✅ You joined room: ${room}`, "system");
+      appendMessage(`🔑 Using secret key: ${'•'.repeat(secretKey.length)}`, "system");
+      updateConnectionStatus(true);
     } else {
-      appendMessage(`❌ ${res.error}`, "error");
-      updateConnection(false);
+      appendMessage(`❌ ${response?.error || "Failed to join room"}`, "error");
+      updateConnectionStatus(false);
     }
   });
 }
 
 function sendMessage() {
-  if (!isConnected) { appendMessage("⚠️ Not connected", "error"); return; }
-  const msg = document.getElementById("messageInput").value.trim();
-  if (!msg) return;
+  if (!isConnected) {
+    appendMessage("Not connected to room", "error");
+    return;
+  }
 
-  const enc = btoa(unescape(encodeURIComponent(xor(msg, currentSecretKey))));
+  const message = document.getElementById("messageInput").value.trim();
+  if (!message) return;
+
+  const encrypted = encrypt(message, currentSecretKey);
+  if (!encrypted) {
+    appendMessage("Failed to encrypt message", "error");
+    return;
+  }
+
   socket.emit("send_message", {
     room: currentRoom,
-    encryptedMessage: enc,
+    encryptedMessage: encrypted,
     sender: currentUsername
   });
-  appendMessage(`${currentUsername}: ${msg}`, "user");
+
+  appendMessage(`${currentUsername}: ${message}`, "user");
   document.getElementById("messageInput").value = "";
 }
 
-function xor(msg, key) {
-  let out = "";
-  for (let i = 0; i < msg.length; i++)
-    out += String.fromCharCode(msg.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-  return out;
+function encrypt(message, key) {
+  try {
+    let result = "";
+    for (let i = 0; i < message.length; i++) {
+      const charCode = message.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+      result += String.fromCharCode(charCode);
+    }
+    return btoa(unescape(encodeURIComponent(result)));
+  } catch (err) {
+    console.error("Encryption error:", err);
+    return null;
+  }
 }
 
-function decrypt(enc) {
+function decrypt(encrypted, key) {
   try {
-    const dec = decodeURIComponent(escape(atob(enc)));
-    return xor(dec, currentSecretKey);
-  } catch { return null; }
+    const decoded = decodeURIComponent(escape(atob(encrypted)));
+    let result = "";
+    for (let i = 0; i < decoded.length; i++) {
+      const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+      result += String.fromCharCode(charCode);
+    }
+    return result;
+  } catch (err) {
+    console.error("Decryption error:", err);
+    return null;
+  }
 }
 
 function leaveRoom() {
-  if (!currentRoom) return;
-  socket.emit("leave_room", currentRoom);
-  appendMessage(`🚪 Left room "${currentRoom}"`, "system");
-  loginArea.style.display = "block";
-  chatArea.style.display = "none";
-  currentRoom = "";
-  updateConnection(false);
+  if (currentRoom) {
+    socket.emit("leave_room", currentRoom);
+    document.getElementById("chatArea").style.display = "none";
+    document.getElementById("loginArea").style.display = "block";
+    appendMessage(`🚪 You left room: ${currentRoom}`, "system");
+    currentRoom = "";
+    updateConnectionStatus(false);
+  }
 }
 
 function clearMessages() {
   document.getElementById("messages").innerHTML = "";
 }
 
-// Socket listeners
-socket.on("connect", () => appendMessage("🌐 Connected", "system"), updateConnection(true));
-socket.on("disconnect", () => appendMessage("🔌 Disconnected", "error"), updateConnection(false));
-socket.on("receive_message", (d) => {
-  if (d.sender === currentUsername) return;
-  if (!d.encryptedMessage || !d.sender) { appendMessage("⚠️ Malformed message", "error"); return; }
-
-  const clear = decrypt(d.encryptedMessage);
-  appendMessage(clear ? `${d.sender}: ${clear}` : `⚠️ Failed to decrypt from ${d.sender}`, clear ? "user" : "error");
-});
-socket.on("user_joined", u => appendMessage(`${u} joined`, "system"));
-socket.on("user_left", u => appendMessage(`${u} left`, "system"));
-socket.on("room_users", list => {
-  document.getElementById("roomUsers").innerHTML = `<h4>Users:</h4>${list.map(u => `<li>${u}${u===currentUsername?" (You)":""}</li>`).join("")}`;
+socket.on("connect", () => {
+  updateConnectionStatus(true);
+  appendMessage("🌐 Connected to server", "system");
 });
 
-// At the end: hide chat on load
+socket.on("disconnect", () => {
+  updateConnectionStatus(false);
+  appendMessage("⚠️ Disconnected from server", "error");
+});
+
+socket.on("connect_error", (err) => {
+  updateConnectionStatus(false);
+  appendMessage(`⚠️ Connection error: ${err.message}`, "error");
+});
+
+socket.on("receive_message", (data) => {
+  if (!data || !data.encryptedMessage || !data.sender) {
+    appendMessage("⚠️ Received malformed message", "error");
+    return;
+  }
+
+  if (data.sender === currentUsername) return;
+
+  const decrypted = decrypt(data.encryptedMessage, currentSecretKey);
+  if (decrypted) {
+    appendMessage(`${data.sender}: ${decrypted}`, "user");
+  } else {
+    appendMessage(`⚠️ Could not decrypt message from ${data.sender}`, "error");
+  }
+});
+
+socket.on("user_joined", (username) => {
+  if (username !== currentUsername) {
+    appendMessage(`👋 ${username} joined the room`, "system");
+  }
+});
+
+socket.on("user_left", (username) => {
+  appendMessage(`🚪 ${username} left the room`, "system");
+});
+
+socket.on("room_users", (users) => {
+  const usersList = document.getElementById("roomUsers");
+  if (usersList) {
+    usersList.innerHTML = "<h4>Users in room:</h4>" + 
+      users.map(user => `<li>${user}${user === currentUsername ? ' (You)' : ''}</li>`).join('');
+  }
+});
+
+// ✅ Prevent form reload on submit
 document.addEventListener("DOMContentLoaded", () => {
-  loginArea.style.display = "block";
-  chatArea.style.display = "none";
-  updateConnection(false);
+  const joinForm = document.getElementById("joinForm");
+  joinForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    joinRoom();
+  });
+
+  document.getElementById("loginArea").style.display = "block";
+  document.getElementById("chatArea").style.display = "none";
 });

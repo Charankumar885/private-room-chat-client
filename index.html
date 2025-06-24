@@ -3,40 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Private Group Chat</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>🔐 Private Group Chat</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div class="container">
     <h2>🔐 Private Group Chat</h2>
     <div id="connectionStatus">🔴 Disconnected</div>
 
-    <!-- Login Section -->
-    <form id="loginArea">
-      <input id="usernameInput" type="text" placeholder="Enter your name" required>
-      <input id="roomInput" type="text" placeholder="Enter room name" required>
-      <input id="secretKeyInput" type="password" placeholder="Enter secret key" autocomplete="current-password" required>
-      <button type="submit" id="joinButton">Join Room</button>
+    <!-- 🔐 Login Form -->
+    <form id="joinForm">
+      <div id="loginArea">
+        <input id="usernameInput" type="text" placeholder="Enter your name" required autocomplete="username"/>
+        <input id="roomInput" type="text" placeholder="Enter room name" required autocomplete="off"/>
+        <input id="secretKeyInput" type="password" placeholder="Enter secret key" required autocomplete="current-password"/>
+        <button type="submit">Join Room</button>
+      </div>
     </form>
 
-    <!-- Chat Section -->
+    <!-- 💬 Chat Area -->
     <div id="chatArea" style="display: none;">
       <div id="roomInfo">
         <h3>Room: <span id="currentRoomDisplay"></span></h3>
         <div id="roomUsers"></div>
       </div>
+
       <div id="messages" class="chat-box"></div>
+
       <div class="message-controls">
         <input id="messageInput" type="text" placeholder="Type a message" />
         <div class="btns">
-          <button onclick="sendMessage()">Send</button>
-          <button onclick="clearMessages()">Clear</button>
-          <button onclick="leaveRoom()">Leave</button>
+          <button type="button" onclick="sendMessage()">Send</button>
+          <button type="button" onclick="clearMessages()">Clear</button>
+          <button type="button" onclick="leaveRoom()">Leave</button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Socket.io & Custom Script -->
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script src="script.js"></script>
 </body>
