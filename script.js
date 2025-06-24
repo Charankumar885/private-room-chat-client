@@ -2,29 +2,58 @@ const socket = io("https://private-room-chat-server.onrender.com");
 
 let room = "";
 let username = "";
-let SECRET_KEY = ""; // ✅ Now it's let so we can update it
+let SECRET_KEY = "";
 
-// XOR-based encryption with URI encoding
+// Improved XOR-based encryption
 function encrypt(message, key) {
-  const xorResult = message
-    .split("")
-    .map((char, i) =>
-      String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-    )
-    .join("");
-  return btoa(encodeURIComponent(xorResult));
+  if (!message || !key) return null;
+  
+  try {
+    // Convert to UTF-8 byte array
+    const encoder = new TextEncoder();
+    const messageBytes = encoder.encode(message);
+    const keyBytes = encoder.encode(key);
+    
+    // Perform XOR operation
+    const encryptedBytes = new Uint8Array(messageBytes.length);
+    for (let i = 0; i < messageBytes.length; i++) {
+      encryptedBytes[i] = messageBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    
+    // Convert to Base64
+    let binaryString = '';
+    encryptedBytes.forEach(byte => {
+      binaryString += String.fromCharCode(byte);
+    });
+    return btoa(binaryString);
+  } catch (err) {
+    console.error("❌ Encryption failed:", err);
+    return null;
+  }
 }
 
-// XOR-based decryption with URI decoding
+// Improved XOR-based decryption
 function decrypt(encrypted, key) {
+  if (!encrypted || !key) return null;
+  
   try {
-    const decoded = decodeURIComponent(atob(encrypted));
-    return decoded
-      .split("")
-      .map((char, i) =>
-        String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-      )
-      .join("");
+    // Convert from Base64
+    const binaryString = atob(encrypted);
+    const encryptedBytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      encryptedBytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const keyBytes = new TextEncoder().encode(key);
+    
+    // Perform XOR operation
+    const decryptedBytes = new Uint8Array(encryptedBytes.length);
+    for (let i = 0; i < encryptedBytes.length; i++) {
+      decryptedBytes[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    
+    // Convert back to string
+    return new TextDecoder().decode(decryptedBytes);
   } catch (err) {
     console.error("❌ Decryption failed:", err);
     return null;
@@ -35,8 +64,6 @@ function joinRoom() {
   room = document.getElementById("roomInput").value.trim();
   username = document.getElementById("usernameInput").value.trim();
   SECRET_KEY = document.getElementById("secretKeyInput").value.trim();
-
-  console.log("🔑 Using secret key:", SECRET_KEY); // debug
 
   if (room && username && SECRET_KEY) {
     socket.emit("join_room", room);
@@ -51,12 +78,19 @@ function sendMessage() {
   const msg = document.getElementById("messageInput").value.trim();
   if (msg && room && username && SECRET_KEY) {
     const encrypted = encrypt(msg, SECRET_KEY);
+    
+    if (encrypted === null) {
+      appendMessage("⚠️ Failed to encrypt message");
+      return;
+    }
+
     socket.emit("send_message", {
       room,
       encryptedMessage: encrypted,
       sender: username,
     });
 
+    // Display the original message in the sender's chat
     appendMessage(`🧑 ${username}: ${msg}`);
     document.getElementById("messageInput").value = "";
   }
@@ -72,8 +106,10 @@ function leaveRoom() {
   appendMessage("🚪 You left the room.");
 }
 
+// Improved message reception handler
 socket.on("receive_message", (payload) => {
-  if (!payload || !payload.encryptedMessage || !payload.sender) {
+  if (!payload || typeof payload !== 'object' || !payload.encryptedMessage || !payload.sender) {
+    console.error("Malformed payload:", payload);
     appendMessage("⚠️ Received a malformed message.");
     return;
   }
@@ -81,8 +117,9 @@ socket.on("receive_message", (payload) => {
   const decrypted = decrypt(payload.encryptedMessage, SECRET_KEY);
 
   if (decrypted === null) {
+    console.error("Decryption failed for message from:", payload.sender);
     appendMessage(`⚠️ Could not decrypt message from ${payload.sender}`);
-  } else {
+  } else if (payload.sender !== username) { // Don't show duplicate messages
     appendMessage(`🧑 ${payload.sender}: ${decrypted}`);
   }
 });
@@ -94,3 +131,16 @@ function appendMessage(msg) {
   messagesDiv.appendChild(p);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
+
+// Connection error handling
+socket.on("connect_error", (err) => {
+  console.error("Connection error:", err);
+  appendMessage("⚠️ Connection error. Trying to reconnect...");
+});
+
+socket.on("reconnect", () => {
+  appendMessage("✅ Reconnected to server");
+  if (room) {
+    socket.emit("join_room", room);
+  }
+});
