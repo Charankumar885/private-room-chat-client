@@ -3,8 +3,9 @@ const socket = io("https://private-room-chat-server.onrender.com", {
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
   timeout: 20000,
-  transports: ["websocket"]
+  transports: ["polling", "websocket"] // added "polling"
 });
+
 
 let currentRoom = "";
 let currentUsername = "";
